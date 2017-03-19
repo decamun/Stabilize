@@ -1,14 +1,14 @@
-
+#define IMUSerial Serial6
 
 void imuSetup() {
-  Serial6.begin(115200);
+  IMUSerial.begin(115200);
 }
 
 void updateImu() {
   logln("Updating IMU...");
-  if(Serial6.available()) {
-    while (Serial6.available()){  // Reads byte from buffer.  Valid packet returns true.
-      imu.encode(Serial6.read());
+  if(IMUSerial.available()) {
+    while (IMUSerial.available()){  // Reads byte from buffer.  Valid packet returns true.
+      imu.encode(IMUSerial.read());
     }
     logln("   success!");
   }

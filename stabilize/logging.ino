@@ -39,7 +39,7 @@ void stronglogln(String msg) {
   bool prevPerm = logging;
   setLogPermission(true);
   logln(msg);
-  seLogPermission(prevPerm);
+  setLogPermission(prevPerm);
 }
 
 
@@ -121,6 +121,6 @@ void dataln(String dat) {
     datafile.println(dat);
     datafile.close();
   } else {
-    logln(String("Failed to open ") + fileName + String(" for data logging. data: ") + dat);
+    stronglogln(String("Failed to open ") + fileName + String(" for data logging. data: ") + dat);
   }
 }
