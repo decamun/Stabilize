@@ -72,6 +72,8 @@ void motSetup(int motNum, float Kp, float Ki, float Kd) {
 }
 
 void setVal(int motNum, int val, float pos) {
+  logln(String("Sending motor command to ") + String(motNum) + String("..."));
+  
   ComplexMotorControlClient *mot_client;
   GenericInterface *com;
 
@@ -107,6 +109,9 @@ void setVal(int motNum, int val, float pos) {
 }
 
 float getVal(int motNum, int val) {
+
+  logln(String("Requesting value from ") + String(motNum) + String("..."));
+  
   ComplexMotorControlClient *mot_client;
 
   switch(motNum) {
@@ -140,6 +145,8 @@ void syncMotor(int motNum) {
   ComplexMotorControlClient *mot_client;
   GenericInterface *com;
 
+  logln(String("Syncing motor ") + String(motNum) + String(":"));
+  
   switch(motNum) {
     case 1:
       mot_client = &mot_client1;
@@ -161,10 +168,12 @@ void syncMotor(int motNum) {
       return;
   }
 
+  logln("Making 'get' commands...");
+
   mot_client->ObsAngle.Get(*com);
   mot_client->ObsAbsoluteAngle.Get(*com);
 
-
+  logln("Recieving Updates...");
   
   if(com->GetTxBytes(communication_buffer,communication_length)) {
     switch(motNum) {
@@ -189,7 +198,11 @@ void syncMotor(int motNum) {
     }
   }
 
+  logln("Serial operations complete...");
+
   com->SetRxBytes(communication_buffer,communication_length);
+
+  logln("Transmitting commands...");
   
   uint8_t *rx_data;   // temporary pointer to received type+data bytes
   uint8_t rx_length;  // number of received type+data bytes
