@@ -4,7 +4,7 @@
 
 #include <MemoryFree.h>
 
-#define LOGGING 0
+#define LOGGING 1
 //0: no logging
 //1: serial logging,
 //2: SD card logging
@@ -24,13 +24,13 @@ const int kLedPin =  13;
 ///////////////////////////////////////////////
 //LOGGING//////////////////////////////////////
 //use this function to log a runtime message
-void logln(String msg);
+void logln(char* msg);
 //use this function to log a runtime message even if logging is disabled
-void stronglogln(String msg);
+void stronglogln(char* msg);
 //Setup for data logging to SD card
 void dataLoggingSetup();
 //use this function to log data to the SD card
-void dataln(String dat);
+void dataln(char* dat);
 //use this to set message logging permission
 void setLogPermission(bool loggingP);
 ///////////////////////////////////////////////
@@ -100,22 +100,13 @@ void loop() {
   logln("Compiling output...");
 
   static long ct = 0;
-  String string = String(ct) + String(",") + String(loop_time);
   ct++;
-  string += String(",") + String(imu.roll);
-  string += String(",") + String(imu.pitch);
-  string += String(",") + String(imu.yaw);
-  string += String(",") + String(imu.ax);
-  string += String(",") + String(imu.ay);
-  string += String(",") + String(imu.az);
-  string += String(",") + String(getVal(1, ANGLE));
-  string += String(",") + String(getVal(2, ANGLE));
-  string += String(",") + String(getVal(3, ANGLE));
-
-  string += String(",") + String(freeMemory());
-  string += String(",") + String(freeMemory());
+  
+  static char string[300];
+  //compile output
+  sprintf(string, "%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f",ct,loop_time,imu.roll,imu.pitch,imu.yaw,imu.ax,imu.ay,imu.az,getVal(1, ANGLE),getVal(2, ANGLE),getVal(3, ANGLE));
 
   //output
   dataln(string);
-  logln(String("Data Output: ")+string);
+  logln(string);
 }
