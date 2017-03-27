@@ -3,6 +3,7 @@
 #define ABS_ANGLE 11
 
 #include <MemoryFree.h>
+#include <Filters.h>
 
 #define LOGGING 1
 //0: no logging
@@ -15,6 +16,15 @@
 
 #define MAX_FREQUENCY 50
 const long MIN_LOOP_TIME = 1000/MAX_FREQUENCY;
+
+
+//Washout Settings
+float rollFrequencyCutoff = 0.5;
+float pitchFrequencyCutoff = 0.5;
+float yawFrequencyCutoff = 0.5;
+FilterOnePole rollHighpass(HIGHPASS, rollFrequencyCutoff);
+FilterOnePole pitchHighpass(HIGHPASS, pitchFrequencyCutoff);
+FilterOnePole yawHighpass(HIGHPASS, yawFrequencyCutoff);
 
 //led output pin
 const int kLedPin =  13;
@@ -41,8 +51,6 @@ UM7 imu;
 void imuSetup();
 //IMU update
 bool updateImu();
-//get pitch angle
-double pitch(int IMU);
 ///////////////////////////////////////////////
 //MOT//////////////////////////////////////////
 //Call this first
@@ -80,16 +88,20 @@ void loop() {
   while(millis()-time_last < MIN_LOOP_TIME);
   long loop_time = millis() - time_last;
   time_last += loop_time;
-  
-  syncMotor(1);
-  syncMotor(2);
-  syncMotor(3);
 
-  setVal(1, ANGLE, 0);
-  setVal(2, ANGLE, 0);
-  setVal(3, ANGLE, 0);
-  
-  
+  //update washout filters
+  rollHighpass.input(imu.roll);
+  pitchHighpass.input(imu.pitch);
+  yawHighpass.input(imu.yaw);
+
+  //sync and update motor commands
+  syncMotor(1); //roll
+  syncMotor(2); //pitch
+  syncMotor(3); //yaw
+
+  setVal(1, ANGLE, -imu.roll+rollHighpass.output()); //roll
+  setVal(2, ANGLE, -imu.pitch+pitchHighpass.output()); //pitch
+  setVal(3, ANGLE, -imu.yaw+yawHighpass.output()); //yaw
 
   //imu
   if(!updateImu()) {
