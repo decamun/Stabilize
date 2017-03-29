@@ -14,8 +14,6 @@
 //1: enable logging in loop
 //0: disable logging in loop
 
-#define RUN_MOTORS 1
-
 #define MAX_FREQUENCY 50
 const long MIN_LOOP_TIME = 1000/MAX_FREQUENCY;
 
@@ -75,19 +73,20 @@ float rad2degree(float rad) {
   return rad * 360.0/(2.0*PI/360);
 }
 
-float yawRollover(float yaw) {
-  static float prev = 0;
-  static float mod = 0;
-  float delta = yaw + mod - prev
-  if(delta < prev-360.0){
-    //rollover 360 
-    mod = mod + 360.0;
-  } else if(delta > prev) {
-    //rollover 0
-    mod = mod - 360.0;
+float rollover(float* prev, float* mod, float value) {
+  float margin = 50;
+
+  //rollover 0
+  if(*prev - margin < 0 && value + margin > 360.0){
+    *mod = *mod - 360.0;
   }
-  prev = yaw+mod;
-  return prev;
+
+  //rollover 360
+  if(*prev + margin > 360.0 && value - margin < 0.0) {
+    *mod = *mod + 360.0;
+  }
+  *prev = value;
+  return value + *mod;
 }
 
 void setup() {
@@ -105,40 +104,57 @@ void setup() {
 }
 
 void loop() {
+  //filter setup
   FilterOnePole rollHighpass(HIGHPASS, rollFrequencyCutoff);
   FilterOnePole pitchHighpass(HIGHPASS, pitchFrequencyCutoff);
   FilterOnePole yawHighpass(HIGHPASS, yawFrequencyCutoff);
+
+  //rollover storage
+  float roll_mod = 0.0;
+  float pitch_mod = 0.0;
+  float yaw_mod = 0.0;
+  
+  float roll_prev = 0.0;
+  float pitch_prev = 0.0;
+  float yaw_prev = 0.0;
+
+  float roll_rollover = 0.0;
+  float pitch_rollover = 0.0;
+  float yaw_rollover = 0.0;
+  
   while(1) {
-    //failover tasks
     
-    //imu
+    //imu or failover
     if(!updateImu()) {
       logln("Something went wrong with the IMU.");
       return; //skip the cycle if the imu doesn't update correctly
     }
     
-    static long time_last = 0;
-  
     //limit cycle frequency to MAX_FREQUENCY
+    static long time_last = 0;
     while(millis()-time_last < MIN_LOOP_TIME);
     long loop_time = millis() - time_last;
     time_last += loop_time;
-  
-    //update washout filters
-    rollHighpass.input(imu.roll);
-    pitchHighpass.input(imu.pitch);
-    yawHighpass.input(imu.yaw);
     
-    if(RUN_MOTORS) {
-      //sync and update motor commands
-      syncMotor(2); //roll
-      syncMotor(1); //pitch
-      syncMotor(3); //yaw
-      
-      setVal(2, ANGLE, degree2rad(imu.roll)+3.14); //roll
-      setVal(1, ANGLE, degree2rad(imu.pitch)+1.5); //pitch
-      setVal(3, ANGLE, degree2rad(-imu.yaw) + 1.5); //yaw
-    }
+    //update rollover
+    roll_rollover = rollover(&roll_prev, &roll_mod, imu.roll);
+    pitch_rollover = rollover(&pitch_prev, &pitch_mod, imu.pitch);
+    yaw_rollover = rollover(&yaw_prev, &yaw_mod, imu.yaw);
+    
+    //update washout filters
+    rollHighpass.input(roll_rollover);
+    pitchHighpass.input(pitch_rollover);
+    yawHighpass.input(yaw_rollover);
+    
+    //set motor commands
+    setVal(2, ANGLE, degree2rad(rollHighpass.output()) + 3.14); //roll
+    setVal(1, ANGLE, degree2rad(pitchHighpass.output()) + 1.5); //pitch
+    setVal(3, ANGLE, degree2rad(-yawHighpass.output()) + 1.5);  //yaw
+    
+    //sync motor info
+    syncMotor(2); //roll
+    syncMotor(1); //pitch
+    syncMotor(3); //yaw
   
     logln("Compiling output...");
   
@@ -146,6 +162,7 @@ void loop() {
     ct++;
     
     static char string[300];
+    
     //compile output
     sprintf(string, "%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f",ct,loop_time,imu.roll,imu.pitch,imu.yaw,imu.ax,imu.ay,imu.az,getVal(1, ANGLE),getVal(2, ANGLE),getVal(3, ANGLE));
   
