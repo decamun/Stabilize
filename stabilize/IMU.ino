@@ -12,13 +12,6 @@ bool updateImu() {
       imu.encode(IMUSerial.read());
       worked = true;
     }
-
-    logln(String("Roll: ") + String(imu.roll));
-    logln(String("Pitch: ") + String(imu.pitch));
-    logln(String("Yaw: ") + String(imu.yaw));
-    logln(String("AX: ") + String(imu.ax));
-    logln(String("AY: ") + String(imu.ay));
-    logln(String("AZ: ") + String(imu.az));
   }
   return worked;
 }

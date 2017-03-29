@@ -5,7 +5,8 @@
 #define LOGFILE "slog.txt"
 #define NAMEFILE "slast.txt"
 #define DATAFILESTEM "sdat"//##.txt
-String fileName = DATAFILESTEM;
+char logs[500];
+char fileName[20] = DATAFILESTEM;
 int fileNumber = 0;
 const int chipSelect = BUILTIN_SDCARD;
 
@@ -18,7 +19,9 @@ void setLogPermission(bool loggingP) {
 }
 
 //use this function to log a runtime message
-void logln(String msg) {
+void logln(char * msg) {
+  
+  
   if(!logging) {
     return;
   }
@@ -27,7 +30,9 @@ void logln(String msg) {
   } else if(LOGGING == 2 && sdActive) {
     File logfile = SD.open(LOGFILE, FILE_WRITE);
     if(logfile){
-      logfile.println(String(fileNumber) + String("|") + msg);
+      char msgcat[300];
+      sprintf(msgcat, "%d|%s", fileNumber, msg);
+      logfile.println(msgcat);
       logfile.close();
     } else {
       return;
@@ -35,7 +40,7 @@ void logln(String msg) {
   }
 }
 
-void stronglogln(String msg) {
+void stronglogln(char* msg) {
   bool prevPerm = logging;
   setLogPermission(true);
   logln(msg);
@@ -58,8 +63,9 @@ void dataLoggingSetup() {
     return;
   }
   sdActive = true;
-
-  logln(String("Looking for ") + String(NAMEFILE) + String("..."));
+  
+  sprintf(logs,"Looking for NAMEFILE");
+  logln(logs);
 
   if(SD.exists(NAMEFILE)) {
     logln("Previous namefile exists");
@@ -71,8 +77,13 @@ void dataLoggingSetup() {
       char next = namefile.read();
       fileNumberS += next;
     }
-    logln(String("Previous file number:") + fileNumberS);
+
     fileNumber = fileNumberS.toInt() + 1;
+
+    //log last file number
+    sprintf(logs, "Previous file number:%d", fileNumber-1);
+    logln(logs);
+    
 
     //erase previous namefile
     namefile.close();
@@ -81,11 +92,16 @@ void dataLoggingSetup() {
     //write a new namefile
     namefile = SD.open(NAMEFILE, FILE_WRITE);
     if(namefile) {
-      fileName += String(fileNumber) + ".txt";
-      namefile.print(String(fileNumber));
+      sprintf(fileName, "%s%d.txt", DATAFILESTEM, fileNumber);
+
+      char fileNumberS[20];
+      sprintf(fileNumberS,"%d",fileNumber);
+      namefile.print(fileNumberS);
       namefile.close();
     } else {
-      logln(String("Error opening ") + String(NAMEFILE) + String("!"));
+
+      sprintf(logs, "Error opening %s!", NAMEFILE);
+      logln(logs);
       return;
     }
 
@@ -93,34 +109,36 @@ void dataLoggingSetup() {
   } else {
     logln("No previous namefile exists. Creating new namefile.");
 
-    fileName += "0.txt";
+    sprintf(fileName, "%s0.txt", DATAFILESTEM);
 
     //make a namefile
     File namefile = SD.open(NAMEFILE, FILE_WRITE);
     if(namefile) {
-      namefile.print(String("0"));
+      namefile.print("0");
       namefile.close();
     } else {
-      logln(String("Error opening ") + String(NAMEFILE) + String("!"));
+      sprintf(logs, "Error opening %s!", NAMEFILE);
+      logln(logs);
       return;
     }
 
   }
 
   //Done!
-  logln("Initialized SD card logging. File Name: " + fileName + " File Number: " + String(fileNumber));
 
+  sprintf(logs, "Initialized SD card logging. \nFile Name: %s \nFile Number: %d", fileName, fileNumber);
+  logln(logs);
 }
 
 //use this function to log data to the SD card
-void dataln(String dat) {
-  char fileNameC[fileName.length()+1];
-  fileName.toCharArray(fileNameC, fileName.length()+1);
-  File datafile = SD.open(fileNameC, FILE_WRITE);
+void dataln(char* dat) {
+  File datafile = SD.open(fileName, FILE_WRITE);
   if(datafile) {
     datafile.println(dat);
     datafile.close();
   } else {
-    stronglogln(String("Failed to open ") + fileName + String(" for data logging. data: ") + dat);
+    sprintf(logs, "Failed to open %s for fata logging. data: %s", fileName, dat);
+    stronglogln(logs);
   }
+  
 }

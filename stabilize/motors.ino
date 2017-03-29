@@ -67,12 +67,11 @@ void motSetup(int motNum, float Kp, float Ki, float Kd) {
   mot_client->AngleKp.Set(*com,Kp);
   mot_client->AngleKi.Set(*com,Ki);
   mot_client->AngleKd.Set(*com,Kd);
-  
-  logln(String("Motor Setup for ") + String(motNum) + String(" done."));
+  sprintf(logs, "Motor Setup for %d done.", motNum);
+  logln(logs);
 }
 
 void setVal(int motNum, int val, float pos) {
-  logln(String("Sending motor command to ") + String(motNum) + String("..."));
   
   ComplexMotorControlClient *mot_client;
   GenericInterface *com;
@@ -109,9 +108,7 @@ void setVal(int motNum, int val, float pos) {
 }
 
 float getVal(int motNum, int val) {
-
-  logln(String("Requesting value from ") + String(motNum) + String("..."));
-  
+    
   ComplexMotorControlClient *mot_client;
 
   switch(motNum) {
@@ -144,8 +141,6 @@ float getVal(int motNum, int val) {
 void syncMotor(int motNum) {
   ComplexMotorControlClient *mot_client;
   GenericInterface *com;
-
-  logln(String("Syncing motor ") + String(motNum) + String(":"));
   
   switch(motNum) {
     case 1:
