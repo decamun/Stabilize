@@ -75,11 +75,20 @@ float rad2degree(float rad) {
   return rad * 360.0/(2.0*PI/360);
 }
 
-//float yawRollover(float yaw) {
-//  static float prev = 0;
-//  static float mod = 0;
-//  if(abs() > ) 
-//}
+float yawRollover(float yaw) {
+  static float prev = 0;
+  static float mod = 0;
+  float delta = yaw + mod - prev
+  if(delta < prev-360.0){
+    //rollover 360 
+    mod = mod + 360.0;
+  } else if(delta > prev) {
+    //rollover 0
+    mod = mod - 360.0;
+  }
+  prev = yaw+mod;
+  return prev;
+}
 
 void setup() {
   pinMode(kLedPin, OUTPUT);
