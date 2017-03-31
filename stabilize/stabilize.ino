@@ -104,7 +104,7 @@ float alpha(long loop_time, float frequency_cutoff) {
 void setup() {
   pinMode(kLedPin, OUTPUT);
   dataLoggingSetup();
-//  imuSetup();
+  imuSetup();
   motControlSetup();
   motSetup(1, 10,0.01,0.01); //pitch
   motSetup(2, 100,0.01,0.05); //roll
