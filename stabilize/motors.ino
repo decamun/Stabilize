@@ -38,6 +38,8 @@ void motControlSetup() {
   Serial2.begin(115200);
   Serial3.begin(115200);
   Serial4.begin(115200);
+  sprintf(logs, "Started serial for all motors.");
+  logln(logs);
 }
 
 void motSetup(int motNum, float Kp, float Ki, float Kd) {
