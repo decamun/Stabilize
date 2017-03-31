@@ -1,4 +1,4 @@
-#define IMUSerial Serial5
+#define IMUSerial Serial6
 
 void imuSetup() {
   IMUSerial.begin(115200);
