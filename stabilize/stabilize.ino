@@ -1,6 +1,7 @@
 //motor value codes
 #define ANGLE 1
 #define ABS_ANGLE 11
+#define VELOCITY 2
 
 #include <MemoryFree.h>
 
@@ -24,6 +25,7 @@ float rollFrequencyCutoff = 0.25;
 float pitchFrequencyCutoff = 0.25;
 float yawFrequencyCutoff = 0.25;
 float zFrequencyCutoff = 0.25;
+float vzFrequencyCutoff = 0.01;
 
 //Motor Calibration
 const float roll_zero = 3.9331;
@@ -127,6 +129,7 @@ void loop() {
   float pitchHighpass = 0;
   float yawHighpass = 0;
   float zHighpass = 0;
+  float vzHighpass = 0;
 
   //rollover storage///////////
 
@@ -155,6 +158,9 @@ void loop() {
   //z position values
   float z_position = 0;
   float z_position_prev = 0;
+
+  float z_velocity = 0;
+  float z_velocity_prev = 0;
 
   long start_time = millis();
   
@@ -200,10 +206,14 @@ void loop() {
     yaw_prev_r = yaw_rollover;
 
     //update z_position and filter
-    z_position_prev = z_position;
-    z_position = z_position - (imu.az+1.0) * (loop_time*0.001);
+    z_velocity_prev = z_velocity;
+    z_velocity = z_velocity - (imu.az+1.0) * (loop_time*0.001);
+    float vzAlpha = alpha(loop_time, vzFrequencyCutoff);
+    vzHighpass = vzAlpha*vzHighpass + vzAlpha*(z_velocity - z_velocity_prev);
+    
     float zAlpha = alpha(loop_time, zFrequencyCutoff);
     zHighpass = zAlpha*zHighpass + zAlpha*(z_position - z_position_prev);
+    z_position_prev = z_position;
     
     //set motor commands
     setVal(2, ANGLE, degree2rad(rollHighpass) + roll_zero); //roll

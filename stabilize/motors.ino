@@ -135,6 +135,8 @@ float getVal(int motNum, int val) {
       return mot_client->ObsAngle.GetReply();
     case ABS_ANGLE:
       return mot_client->ObsAbsoluteAngle.GetReply();
+    case VELOCITY:
+      return mot_client->ObsVelocity.GetReply();
     default:
       return 0;
   }
@@ -169,6 +171,7 @@ void syncMotor(int motNum) {
 
   mot_client->ObsAngle.Get(*com);
   mot_client->ObsAbsoluteAngle.Get(*com);
+  mot_client->ObsVelocity.Get(*com);
 
   logln("Recieving Updates...");
   
