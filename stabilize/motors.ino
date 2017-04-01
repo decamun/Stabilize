@@ -33,6 +33,7 @@ GenericInterface com3;
 ComplexMotorControlClient mot_client4(0);
 GenericInterface com4;
 
+
 void motControlSetup() {
   Serial1.begin(115200);
   Serial2.begin(115200);
@@ -42,7 +43,7 @@ void motControlSetup() {
   logln(logs);
 }
 
-void motSetup(int motNum, float Kp, float Ki, float Kd) {
+void motSetup(int motNum, float Kp, float Ki, float Kd, uint32_t fc) {
   ComplexMotorControlClient *mot_client;
   GenericInterface *com;
 
@@ -69,6 +70,8 @@ void motSetup(int motNum, float Kp, float Ki, float Kd) {
   mot_client->AngleKp.Set(*com,Kp);
   mot_client->AngleKi.Set(*com,Ki);
   mot_client->AngleKd.Set(*com,Kd);
+
+  mot_client->VelocityFilterFc.Set(*com, fc);
   sprintf(logs, "Motor Setup for %d done.", motNum);
   logln(logs);
 }
@@ -173,6 +176,8 @@ void syncMotor(int motNum) {
   mot_client->ObsAbsoluteAngle.Get(*com);
   mot_client->ObsVelocity.Get(*com);
 
+  
+
   logln("Recieving Updates...");
   
   if(com->GetTxBytes(communication_buffer,communication_length)) {
@@ -198,23 +203,32 @@ void syncMotor(int motNum) {
     }
   }
 
+  
   logln("Serial operations complete...");
 
   com->SetRxBytes(communication_buffer,communication_length);
 
   logln("Transmitting commands...");
+
+  
+
   
   uint8_t *rx_data;   // temporary pointer to received type+data bytes
   uint8_t rx_length;  // number of received type+data bytes
   // while we have message packets to parse
   while(com->PeekPacket(&rx_data,&rx_length))
   { 
+
+    sprintf(logs, "Length in the thingy %d", rx_length);
+    stronglogln(logs);
+    
     // Share that packet with all client objects
     mot_client->ReadMsg(*com,rx_data,rx_length);
-
+    
     // Once we're done with the message packet, drop it
     com->DropPacket();
   }
+  
 }
 
 

@@ -7,7 +7,7 @@
 
 #define ARM_LENGTH 0.1016 //meters
 
-#define LOGGING 1
+#define LOGGING 0
 //0: no logging
 //1: serial logging,
 //2: SD card logging
@@ -21,16 +21,16 @@ const long MIN_LOOP_TIME = 1000/MAX_FREQUENCY;
 
 
 //Washout Settings
-float rollFrequencyCutoff = 0.25;
-float pitchFrequencyCutoff = 0.25;
-float yawFrequencyCutoff = 0.25;
-float zFrequencyCutoff = 0.25;
-float vzFrequencyCutoff = 0.01;
+float rollFrequencyCutoff = 0.01;//0.25;
+float pitchFrequencyCutoff = 0.01;//0.25;
+float yawFrequencyCutoff = 0.01;//0.25;
+float zFrequencyCutoff = 0.01;//0.25;
+float vzFrequencyCutoff = 0.01;//0.01;
 
 //Motor Calibration
-const float roll_zero = 3.9331;
-const float pitch_zero = -1.1137;
-const float yaw_zero = 5.7421;
+const float roll_zero = 1.7825;
+const float pitch_zero = -1.0861;
+const float yaw_zero = 0.8115;
 const float z_zero = 0;
 
 
@@ -51,6 +51,8 @@ void dataLoggingSetup();
 void dataln(char* dat);
 //use this to set message logging permission
 void setLogPermission(bool loggingP);
+char logs[500];
+
 ///////////////////////////////////////////////
 //IMU//////////////////////////////////////////
 #include <UM7.h>
@@ -64,7 +66,7 @@ bool updateImu();
 //Call this first
 void motControlSetup();
 //Call this for each motor
-void motSetup(int motNum, float Kp, float Ki, float Kd);
+void motSetup(int motNum, float Kp, float Ki, float Kd, uint32_t fc);
 //Set a value
 void setVal(int motNum, int val, float pos);
 //Get a value
@@ -108,10 +110,10 @@ void setup() {
   dataLoggingSetup();
   imuSetup();
   motControlSetup();
-  motSetup(1, 10,0.01,0.01); //pitch
-  motSetup(2, 100,0.01,0.05); //roll
-  motSetup(3, 100,0.01,0.05); //yaw
-  motSetup(4, 150,0.05,0.01); //z
+  motSetup(1, 20,0,0.3,100); //pitch
+  motSetup(2, 50,0,1.5,100); //roll (p:d ~50 is good)
+  motSetup(3, 25, 0,3,100); //yaw (p:d ~10 is good for system)
+  motSetup(4, 150,0.05,0.01,100); //z
   
   if(!LOOP_LOGGING) {
     setLogPermission(false);
@@ -120,11 +122,6 @@ void setup() {
 
 void loop() {
   //filter setup
-//  FilterOnePole rollHighpass(HIGHPASS, rollFrequencyCutoff);
-//  FilterOnePole pitchHighpass(HIGHPASS, pitchFrequencyCutoff);
-//  FilterOnePole yawHighpass(HIGHPASS, yawFrequencyCutoff);
-//  FilterOnePole zHighpass(HIGHPASS, zFrequencyCutoff);
-
   float rollHighpass = 0;
   float pitchHighpass = 0;
   float yawHighpass = 0;
@@ -166,26 +163,31 @@ void loop() {
   
   while(1) {
 
-    //failover tasks/////
-
-    //imu
-    if(!updateImu()) {
-      logln("Something went wrong with the IMU.");
-      continue; //skip the cycle if the imu doesn't update correctly
-    }
-
-    //wait for highpass to steady out
-    if(millis() - start_time < 2000) {
-      continue;
-    }
-
-    //////////////////////
-    
+    digitalWrite(kLedPin, LOW);
     //limit cycle frequency to MAX_FREQUENCY
     static long time_last = 0;
     while(millis()-time_last < MIN_LOOP_TIME);
     long loop_time = millis() - time_last;
     time_last += loop_time;
+    digitalWrite(kLedPin, HIGH);
+
+    //failover tasks/////
+
+    //imu
+    if(!updateImu()) {
+      stronglogln("Something went wrong with the IMU.");
+      continue; //skip the cycle if the imu doesn't update correctly
+    }
+
+    
+    //wait for highpass to steady out
+    if(millis() - start_time < 2000) {
+      continue;
+    }
+    
+
+    //////////////////////
+    
     
     //update rollover
     roll_rollover = rollover(&roll_prev, &roll_mod, imu.roll);
@@ -214,19 +216,25 @@ void loop() {
     float zAlpha = alpha(loop_time, zFrequencyCutoff);
     zHighpass = zAlpha*zHighpass + zAlpha*(z_position - z_position_prev);
     z_position_prev = z_position;
+
+
+
     
     //set motor commands
-    setVal(2, ANGLE, degree2rad(rollHighpass) + roll_zero); //roll
     setVal(1, ANGLE, degree2rad(-pitchHighpass) + pitch_zero); //pitch
-    setVal(3, ANGLE, degree2rad(-yawHighpass) + yaw_zero);  //yaw
+    setVal(2, ANGLE, degree2rad(-rollHighpass) + roll_zero); //roll
+    setVal(3, ANGLE, degree2rad(yawHighpass) + yaw_zero);  //yaw
     setVal(4, ANGLE, -zHighpass/ARM_LENGTH + z_zero);
+
+
     
     //sync motor info
-    syncMotor(2); //roll
     syncMotor(1); //pitch
+    syncMotor(2); //roll
     syncMotor(3); //yaw
-
     syncMotor(4); //z
+    
+
   
     logln("Compiling output...");
   

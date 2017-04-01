@@ -5,7 +5,6 @@
 #define LOGFILE "slog.txt"
 #define NAMEFILE "slast.txt"
 #define DATAFILESTEM "sdat"//##.txt
-char logs[500];
 char fileName[20] = DATAFILESTEM;
 int fileNumber = 0;
 const int chipSelect = BUILTIN_SDCARD;
